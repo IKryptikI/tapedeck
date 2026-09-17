@@ -62,7 +62,7 @@ def thumbnail_of(track_url):
 
 
 # MusicBrainz asks that clients identify themselves and stay under ~1 req/sec.
-MB_UA = "tapedeck/1.0 ( https://github.com/kw0175/tapedeck )"
+MB_UA = "tapedeck/1.0 ( https://github.com/IKryptikI/tapedeck )"
 MB_DELAY = 1.1
 
 

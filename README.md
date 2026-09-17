@@ -48,7 +48,7 @@ licensed material, and is not affiliated with any of the platforms it can read.
 
 ### Windows
 
-**[Latest release](https://github.com/kw0175/tapedeck/releases/latest)** - grab
+**[Latest release](https://github.com/IKryptikI/tapedeck/releases/latest)** - grab
 `tapedeck.exe`, double-click, done. One file, no installer.
 
 Windows will show a SmartScreen warning the first time because the build is not
