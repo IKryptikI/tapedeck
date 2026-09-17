@@ -278,6 +278,34 @@ Linux library integration is Spotify-only.** Downloads still work fine either
 way; on the Apple Music side they just stay files in a folder rather than
 landing inside any app.
 
+## Uninstall
+
+There's no system-wide install to undo — it's a cloned folder and a venv. To
+remove everything:
+
+```bash
+# stop and remove the auto-start units, if you set them up
+systemctl --user disable --now tapedeck-server.service tapedeck-tunnel.service 2>/dev/null
+rm -f ~/.config/systemd/user/tapedeck-server.service ~/.config/systemd/user/tapedeck-tunnel.service
+systemctl --user daemon-reload
+
+# remove the app menu entry, if you added one
+rm -f ~/.local/share/applications/tapedeck.desktop
+
+# remove saved config (tokens, worker URL, etc.)
+rm -rf ~/.config/tapedeck
+
+# remove the app itself, including its venv
+rm -rf ~/tapedeck   # or wherever you cloned it
+```
+
+None of this touches your downloaded music — those are just files in whatever
+folder `root` pointed at, untouched by any of the above.
+
+Windows: uninstalling is just deleting `tapedeck.exe` and, if you set one up,
+the "tapedeck server"/"tapedeck tunnel" Scheduled Task entries. `%LOCALAPPDATA%\tapedeck`
+holds the same saved config the `~/.config/tapedeck` line above removes on Linux.
+
 ## config.local.json
 
 Both scripts read `config.local.json` from the repo folder, so tokens stay off
