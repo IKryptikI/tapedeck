@@ -18,15 +18,15 @@ the tunnel down and the page stops working.
 import argparse
 import functools
 import json
-import os
 import re
-import shutil
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+from platform_tools import config_base_dir, find_cloudflared
 
 # Python block-buffers stdout when it is redirected to a file or pipe, which is
 # exactly how this gets run in the background - the log stays empty until exit.
@@ -43,7 +43,7 @@ def _config_path():
     does not, so tokens end up in cloud storage. Falls back to the repo copy so
     existing setups keep working.
     """
-    base = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_CONFIG_HOME")
+    base = config_base_dir()
     if base:
         p = Path(base) / "tapedeck" / "config.json"
         if p.exists():
@@ -64,23 +64,6 @@ def load_config():
     except (OSError, json.JSONDecodeError) as e:
         print(f"!! Ignoring {CONFIG_FILE.name}: {e}\n")
         return {}
-
-
-def find_cloudflared():
-    exe = shutil.which("cloudflared")
-    if exe:
-        return exe
-    for pat in (r"C:\Program Files (x86)\cloudflared\cloudflared.exe",
-                r"C:\Program Files\cloudflared\cloudflared.exe"):
-        if Path(pat).exists():
-            return pat
-    local = os.environ.get("LOCALAPPDATA")
-    if local:
-        hits = sorted(Path(local).glob(
-            "Microsoft/WinGet/Packages/Cloudflare.cloudflared*/**/cloudflared.exe"))
-        if hits:
-            return str(hits[-1])
-    return None
 
 
 def register(worker, token, backend, attempts=3):
@@ -144,7 +127,13 @@ def main():
 
     cf = find_cloudflared()
     if not cf:
-        sys.exit("cloudflared not found.\n  winget install Cloudflare.cloudflared")
+        sys.exit(
+            "cloudflared not found.\n"
+            "  Windows: winget install Cloudflare.cloudflared\n"
+            "  macOS:   brew install cloudflared\n"
+            "  Linux:   no apt package upstream - grab the binary from\n"
+            "           https://github.com/cloudflare/cloudflared/releases/latest\n"
+            "           and put it on PATH (e.g. /usr/local/bin)")
 
     if not local_up(args.port):
         if args.wait <= 0:

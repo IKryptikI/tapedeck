@@ -1,0 +1,12 @@
+[Unit]
+Description=tapedeck local web server
+
+[Service]
+Type=simple
+WorkingDirectory=%h/tapedeck
+ExecStart=%h/tapedeck/run-server.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -16,12 +16,12 @@ left exactly as they are - a wrong sleeve is worse than the one already there.
 
 import argparse
 import json
-import os
-import shutil
 import subprocess
 import sys
 import winquiet  # noqa: F401  (patches subprocess on import)
 from pathlib import Path
+
+from platform_tools import find_exe, install_hint
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -31,19 +31,6 @@ except (AttributeError, ValueError):
 
 HERE = Path(__file__).resolve().parent
 AUDIO = {".mp3", ".m4a", ".flac", ".ogg", ".opus"}
-
-
-def find_exe(name):
-    exe = shutil.which(name)
-    if exe:
-        return exe
-    local = os.environ.get("LOCALAPPDATA")
-    if local:
-        hits = sorted(Path(local).glob(
-            f"Microsoft/WinGet/Packages/Gyan.FFmpeg*/**/bin/{name}.exe"))
-        if hits:
-            return str(hits[-1])
-    return None
 
 
 def tags_of(track, ffprobe):
@@ -88,7 +75,7 @@ def main():
 
     ffprobe = find_exe("ffprobe")
     if not ffprobe:
-        sys.exit("ffprobe not found.\n  winget install Gyan.FFmpeg")
+        sys.exit(install_hint("ffprobe", winget="Gyan.FFmpeg", brew="ffmpeg", apt="ffmpeg"))
 
     root = Path(args.dir).expanduser().resolve()
     if not root.is_dir():

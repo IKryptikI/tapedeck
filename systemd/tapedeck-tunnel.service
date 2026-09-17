@@ -1,0 +1,14 @@
+[Unit]
+Description=tapedeck Cloudflare tunnel
+After=tapedeck-server.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/tapedeck
+ExecStart=%h/tapedeck/run-tunnel.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

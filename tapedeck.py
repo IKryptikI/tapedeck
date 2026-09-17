@@ -15,10 +15,10 @@ Examples:
 """
 
 import argparse
-import os
-import shutil
 import sys
 from pathlib import Path
+
+from platform_tools import find_exe as _find_exe, install_hint
 
 # Windows consoles default to cp1252, which cannot encode characters yt-dlp puts
 # in filenames - it substitutes U+29F8 BIG SOLIDUS for "/" so the name is legal.
@@ -41,22 +41,9 @@ PLAYLIST_TEMPLATE = "%(playlist)s/%(playlist_index)02d - %(uploader)s - %(title)
 
 
 def find_ffmpeg():
-    """Locate ffmpeg on PATH, falling back to the WinGet install location.
-
-    winget adds ffmpeg to PATH, but shells opened before the install don't see it
-    until they're restarted. Without this, yt-dlp silently skips remuxing and
-    warns about DASH containers and malformed AAC timestamps.
-    """
-    exe = shutil.which("ffmpeg")
-    if exe:
-        return exe
-    local = os.environ.get("LOCALAPPDATA")
-    if local:
-        hits = sorted(Path(local).glob(
-            "Microsoft/WinGet/Packages/Gyan.FFmpeg*/**/bin/ffmpeg.exe"))
-        if hits:
-            return str(hits[-1])
-    return None
+    """Locate ffmpeg on PATH. Without it, yt-dlp silently skips remuxing and
+    warns about DASH containers and malformed AAC timestamps."""
+    return _find_exe("ffmpeg")
 
 
 def read_batch(path):
@@ -221,12 +208,9 @@ def main():
 
     if args.format != "best" and not find_ffmpeg():
         sys.exit(
-            "ffmpeg not found on PATH, and it's required to convert to "
-            f"{args.format}.\n"
-            "  Windows:  winget install Gyan.FFmpeg     (reopen your terminal after)\n"
-            "  macOS:    brew install ffmpeg\n"
-            "  Linux:    sudo apt install ffmpeg\n"
-            "Or rerun with --format best to skip conversion entirely."
+            install_hint("ffmpeg", winget="Gyan.FFmpeg", brew="ffmpeg", apt="ffmpeg")
+            + f"\nRequired to convert to {args.format}. "
+              "Or rerun with --format best to skip conversion entirely."
         )
 
     progress = Progress()

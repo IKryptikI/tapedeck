@@ -46,6 +46,8 @@ licensed material, and is not affiliated with any of the platforms it can read.
 
 ## Download
 
+### Windows
+
 **[Latest release](https://github.com/kw0175/tapedeck/releases/latest)** - grab
 `tapedeck.exe`, double-click, done. One file, no installer.
 
@@ -64,7 +66,10 @@ They stay external deliberately - together they are ~200 MB, and ffmpeg's
 licensing would complicate this project's MIT terms. The app tells you if either
 is missing rather than failing cryptically.
 
-Prefer running from source? See Setup below; everything works the same way.
+### Linux / macOS
+
+No bundled binary yet - run from source. It's a few extra minutes, not a
+different experience: see [Setup](#setup) below.
 
 ## Web UI
 
@@ -133,26 +138,43 @@ a home connection doesn't.
 
 ## Setup
 
+Works the same way on Windows, macOS and Linux — Python, ffmpeg and Deno are
+all cross-platform. Every script looks for its tools on `PATH` first
+(`platform_tools.py`), so as long as they're installed the normal way for
+your OS, nothing else needs configuring.
+
 **1. Python packages**
 
-```powershell
-pip install -r requirements.txt
+A virtualenv keeps yt-dlp's dependencies out of your system Python:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
+
+(Windows: `py -m venv .venv` then `.venv\Scripts\pip install -r requirements.txt`.)
+Run scripts as `.venv/bin/python tapedeck.py ...` from then on, or activate the
+venv (`source .venv/bin/activate`) and drop the prefix.
 
 **2. ffmpeg** — required for anything except `--format best`.
 
-```powershell
-winget install Gyan.FFmpeg
-```
+| OS | Command |
+|---|---|
+| Windows | `winget install Gyan.FFmpeg` (reopen your terminal after) |
+| macOS | `brew install ffmpeg` |
+| Debian/Ubuntu | `sudo apt install ffmpeg` |
+| Fedora | `sudo dnf install ffmpeg` |
+| Arch | `sudo pacman -S ffmpeg` |
 
-Close and reopen your terminal afterward so `ffmpeg` lands on `PATH`. Verify with
-`ffmpeg -version`.
+Verify with `ffmpeg -version`.
 
 **3. Deno** — required for YouTube.
 
-```powershell
-winget install DenoLand.Deno
-```
+| OS | Command |
+|---|---|
+| Windows | `winget install DenoLand.Deno` |
+| macOS | `brew install deno` |
+| Linux | `curl -fsSL https://deno.land/install.sh \| sh` |
 
 YouTube now requires executing JavaScript to solve the signature and "n"
 challenges on its media URLs. Without a runtime, yt-dlp still lists formats
@@ -169,9 +191,44 @@ Other sites don't need it. This is a YouTube-specific requirement.
 **Keep yt-dlp current.** Site extraction breaks regularly, and YouTube most of
 all:
 
-```powershell
-pip install -U yt-dlp
+```bash
+.venv/bin/pip install -U yt-dlp
 ```
+
+### Linux: desktop app and auto-start
+
+`app.py` (the windowed version) uses [pywebview](https://pywebview.flowrl.com/),
+which on Linux needs a system WebKit binding — `pip install pywebview` alone
+isn't enough:
+
+```bash
+sudo apt install python3-gi gir1.2-webkit2-4.1   # Debian/Ubuntu
+sudo dnf install python3-gobject webkit2gtk4.1    # Fedora
+.venv/bin/pip install pywebview
+```
+
+Without it, `app.py` falls back to opening your regular browser instead — still
+fully functional, just not in its own window.
+
+For a shortcut: `tapedeck.sh` launches the desktop app (`chmod +x` it first),
+and `tapedeck.desktop` is a launcher you can drop in `~/.local/share/applications/`
+after editing the two paths inside it to match where you cloned the repo.
+
+To run the server (and optionally the tunnel) automatically at login — the
+Linux equivalent of the Windows Scheduled Task setup below — use the systemd
+user units in `systemd/`:
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp systemd/tapedeck-server.service systemd/tapedeck-tunnel.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now tapedeck-server.service
+# only if you're using the Worker + tunnel setup below:
+systemctl --user enable --now tapedeck-tunnel.service
+```
+
+Logs land in `~/.local/state/tapedeck/`. `loginctl enable-linger $USER` keeps
+the units running after you log out (e.g. on a headless box).
 
 ## config.local.json
 
@@ -246,8 +303,9 @@ Set it to `firefox`, `chrome`, `edge`, `brave`, `opera`, `vivaldi` or `safari`.
 Off by default: reading a browser's cookie store is not something a tool should
 do uninvited. Cookies are handed to yt-dlp locally and go nowhere else.
 
-On Windows, **Firefox is the easy one** — Chrome and Edge lock their cookie
-database while running, so they have to be closed first.
+**Firefox is the easy one** on every platform — Chromium-based browsers (Chrome,
+Edge, Brave, Vivaldi) lock their cookie database while running, so they have to
+be closed first.
 
 ## Troubleshooting
 
@@ -311,10 +369,9 @@ opt out.
 `split_tracks.py` cuts a concert, DJ set, or mixtape into individual tagged tracks.
 It runs in two steps so you can correct the boundaries before committing.
 
-```powershell
+```bash
 # 1. find the boundaries -> writes an editable cuesheet
-python split_tracks.py concert.m4a --detect --expect 12 --names tracklist.txt `
-    --artist "Oasis" --album "Live At Wolverhampton 1994" --date 1994 --cue-out cue.txt
+python split_tracks.py concert.m4a --detect --expect 12 --names tracklist.txt --artist "Oasis" --album "Live At Wolverhampton 1994" --date 1994 --cue-out cue.txt
 
 # 2. check/adjust the times in cue.txt, then cut
 python split_tracks.py concert.m4a --cue cue.txt -o tracks
@@ -327,9 +384,8 @@ python split_tracks.py concert.m4a --cue cue.txt -o tracks
 If the upload has chapter markers — or timestamps in the description that YouTube
 parsed into chapters — those boundaries are exact. Always prefer them:
 
-```powershell
-python split_tracks.py concert.webm --detect --from-chapters "https://youtu.be/VIDEOID" `
-    --artist "Oasis" --album "MTV Unplugged 1996" --date 1996 --cue-out cue.txt
+```bash
+python split_tracks.py concert.webm --detect --from-chapters "https://youtu.be/VIDEOID" --artist "Oasis" --album "MTV Unplugged 1996" --date 1996 --cue-out cue.txt
 ```
 
 Titles come from the chapters too, so no `--names` file is needed. Everything below

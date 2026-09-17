@@ -33,6 +33,9 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
+from platform_tools import (config_base_dir, find_exe, find_deno as _find_deno,
+                             install_hint)
+
 # Windows consoles default to cp1252, which cannot encode characters yt-dlp puts
 # in filenames - it substitutes U+29F8 BIG SOLIDUS for "/" so the name is legal.
 # Printing such a name then raises UnicodeEncodeError and kills the run.
@@ -65,7 +68,7 @@ def _config_path():
     does not, so tokens end up in cloud storage. Falls back to the repo copy so
     existing setups keep working.
     """
-    base = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_CONFIG_HOME")
+    base = config_base_dir()
     if base:
         p = Path(base) / "tapedeck" / "config.json"
         if p.exists():
@@ -88,40 +91,7 @@ def load_config():
         return {}
 
 
-def find_exe(name):
-    exe = shutil.which(name)
-    if exe:
-        return exe
-    local = os.environ.get("LOCALAPPDATA")
-    if local:
-        hits = sorted(Path(local).glob(
-            f"Microsoft/WinGet/Packages/Gyan.FFmpeg*/**/bin/{name}.exe"))
-        if hits:
-            return str(hits[-1])
-    return None
-
-
-def find_deno():
-    """Locate deno, which YouTube extraction now needs.
-
-    YouTube requires executing JavaScript to solve the signature and n
-    challenges. Without a runtime yt-dlp still lists formats, but the media URLs
-    it hands back are rejected with HTTP 403 - the failure looks like a download
-    problem rather than a missing dependency. winget puts deno on PATH, but a
-    shell started before the install won't see it.
-    """
-    exe = shutil.which("deno")
-    if exe:
-        return exe
-    local = os.environ.get("LOCALAPPDATA")
-    if local:
-        for pat in ("Microsoft/WinGet/Packages/DenoLand.Deno*/**/deno.exe",
-                    "../../.deno/bin/deno.exe"):
-            hits = sorted(Path(local).glob(pat))
-            if hits:
-                return str(hits[-1])
-    home = Path.home() / ".deno" / "bin" / "deno.exe"
-    return str(home) if home.exists() else None
+find_deno = _find_deno
 
 
 def safe_target(folder):
@@ -340,7 +310,9 @@ def run_job(job):
                       "--remote-components", "ejs:github"]
         else:
             log(job, "!! deno not found - YouTube downloads will fail with 403.")
-            log(job, "   Install it:  winget install DenoLand.Deno")
+            log(job, "   Windows: winget install DenoLand.Deno")
+            log(job, "   macOS:   brew install deno")
+            log(job, "   Linux:   curl -fsSL https://deno.land/install.sh | sh")
 
         # YouTube increasingly answers anonymous requests with "Sign in to
         # confirm you're not a bot". Borrowing the browser's logged-in session
@@ -644,8 +616,8 @@ def main():
                   cookiesFromBrowser=cfg.get("cookiesFromBrowser"))
 
     if not find_exe("ffmpeg"):
-        print("!! ffmpeg not found - conversion will fail.\n"
-              "   winget install Gyan.FFmpeg\n")
+        print("!! " + install_hint("ffmpeg", winget="Gyan.FFmpeg", brew="ffmpeg",
+                                    apt="ffmpeg").replace("\n", "\n   ") + "\n")
     if args.host not in ("127.0.0.1", "::1") and not args.token:
         # A warning is not enough. This endpoint downloads arbitrary URLs onto
         # the host and writes files under --root; unauthenticated on a reachable

@@ -32,13 +32,13 @@ Cuesheet format (blank lines and #-comments ignored):
 
 import argparse
 import json
-import os
 import re
-import shutil
 import subprocess
 import winquiet  # noqa: F401  (patches subprocess on import)
 import sys
 from pathlib import Path
+
+from platform_tools import find_exe, install_hint
 
 # Windows consoles default to cp1252, which cannot encode characters yt-dlp puts
 # in filenames - it substitutes U+29F8 BIG SOLIDUS for "/" so the name is legal.
@@ -53,23 +53,6 @@ except (AttributeError, ValueError):                             # pragma: no co
 ILLEGAL = str.maketrans({c: "_" for c in '<>:"/\\|?*'})
 TIME_RE = r"(?:\d+:)?(?:\d+:)?\d+(?:\.\d+)?"
 
-
-def find_exe(name):
-    """Locate ffmpeg/ffprobe on PATH, falling back to the WinGet install location.
-
-    winget adds ffmpeg to PATH, but shells opened before the install don't see it
-    until they're restarted - so look in the package directory too.
-    """
-    exe = shutil.which(name)
-    if exe:
-        return exe
-    local = os.environ.get("LOCALAPPDATA")
-    if local:
-        hits = sorted(Path(local).glob(
-            f"Microsoft/WinGet/Packages/Gyan.FFmpeg*/**/bin/{name}.exe"))
-        if hits:
-            return str(hits[-1])
-    return None
 
 
 def parse_time(s):
@@ -499,8 +482,8 @@ def main():
 
     ffmpeg, ffprobe = find_exe("ffmpeg"), find_exe("ffprobe")
     if not ffmpeg or not ffprobe:
-        sys.exit("ffmpeg/ffprobe not found.\n"
-                 "  winget install Gyan.FFmpeg      (then reopen your terminal)")
+        sys.exit(install_hint("ffmpeg/ffprobe", winget="Gyan.FFmpeg", brew="ffmpeg",
+                               apt="ffmpeg"))
 
     if args.detect:
         return do_detect(args, ffmpeg, ffprobe)

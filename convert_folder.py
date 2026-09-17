@@ -21,12 +21,12 @@ script warns when you ask for that.
 """
 
 import argparse
-import os
-import shutil
 import subprocess
 import winquiet  # noqa: F401  (patches subprocess on import)
 import sys
 from pathlib import Path
+
+from platform_tools import find_exe, install_hint
 
 # Windows consoles default to cp1252, which cannot encode characters yt-dlp puts
 # in filenames - it substitutes U+29F8 BIG SOLIDUS for "/" so the name is legal.
@@ -48,20 +48,6 @@ TARGETS = {
     "m4a": ("m4a", "aac", False),
     "mp3": ("mp3", "libmp3lame", False),
 }
-
-
-def find_exe(name):
-    """Locate ffmpeg/ffprobe on PATH, falling back to the WinGet install location."""
-    exe = shutil.which(name)
-    if exe:
-        return exe
-    local = os.environ.get("LOCALAPPDATA")
-    if local:
-        hits = sorted(Path(local).glob(
-            f"Microsoft/WinGet/Packages/Gyan.FFmpeg*/**/bin/{name}.exe"))
-        if hits:
-            return str(hits[-1])
-    return None
 
 
 def convert(src, dest, codec, lossless, bitrate, ffmpeg):
@@ -102,7 +88,7 @@ def main():
 
     ffmpeg = find_exe("ffmpeg")
     if not ffmpeg:
-        sys.exit("ffmpeg not found.\n  winget install Gyan.FFmpeg")
+        sys.exit(install_hint("ffmpeg", winget="Gyan.FFmpeg", brew="ffmpeg", apt="ffmpeg"))
 
     folder = Path(args.dir).expanduser().resolve()
     if not folder.is_dir():

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=tapedeck
+Comment=Pull audio off the web and file it into your music library
+Exec=/home/YOU/tapedeck/tapedeck.sh
+Path=/home/YOU/tapedeck
+Icon=audio-x-generic
+Terminal=false
+Categories=AudioVideo;Audio;

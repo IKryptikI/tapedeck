@@ -16,12 +16,14 @@ import threading
 import webbrowser
 from pathlib import Path
 
+from platform_tools import config_base_dir, install_hint
+
 # A windowed process - pythonw, or a PyInstaller build with no console - has
 # sys.stdout set to None. The first print() then raises and the process dies
 # with no message at all, which looks exactly like "nothing happened".
 # Redirect to a log before importing anything that might print.
 if sys.stdout is None or sys.stderr is None:
-    _log_dir = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "tapedeck"
+    _log_dir = Path(config_base_dir() or Path.home()) / "tapedeck"
     _log_dir.mkdir(parents=True, exist_ok=True)
     _log = open(_log_dir / "app.log", "a", encoding="utf-8", errors="replace",
                 buffering=1)
@@ -64,11 +66,13 @@ def missing_tools():
     than surfacing later as a cryptic download failure."""
     missing = []
     if not server.find_exe("ffmpeg"):
-        missing.append(("ffmpeg", "winget install Gyan.FFmpeg",
-                        "required to convert or split anything"))
+        missing.append(("ffmpeg", "required to convert or split anything",
+                        install_hint("ffmpeg", winget="Gyan.FFmpeg", brew="ffmpeg",
+                                     apt="ffmpeg")))
     if not server.find_deno():
-        missing.append(("deno", "winget install DenoLand.Deno",
-                        "required for YouTube, which 403s without it"))
+        missing.append(("deno", "required for YouTube, which 403s without it",
+                        install_hint("deno", winget="DenoLand.Deno", brew="deno",
+                                     apt=None)))
     return missing
 
 
@@ -87,8 +91,8 @@ def main():
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{port}/"
 
-    for name, cmd, why in missing_tools():
-        print(f"!! {name} not found - {why}\n   {cmd}")
+    for name, why, hint in missing_tools():
+        print(f"!! {name} not found - {why}\n   " + hint.replace("\n", "\n   "))
 
     try:
         import webview

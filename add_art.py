@@ -15,7 +15,6 @@ or stretched at display time.
 """
 
 import argparse
-import os
 import re
 import shutil
 import subprocess
@@ -29,6 +28,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from platform_tools import config_base_dir, find_exe, install_hint
+
 # Windows consoles default to cp1252, which cannot encode characters yt-dlp puts
 # in filenames - it substitutes U+29F8 BIG SOLIDUS for "/" so the name is legal.
 # Printing such a name then raises UnicodeEncodeError and kills the run.
@@ -40,20 +41,6 @@ except (AttributeError, ValueError):                             # pragma: no co
 
 
 AUDIO_EXT = {".flac", ".m4a", ".mp3", ".ogg", ".opus"}
-
-
-def find_exe(name):
-    """Locate ffmpeg/ffprobe on PATH, falling back to the WinGet install location."""
-    exe = shutil.which(name)
-    if exe:
-        return exe
-    local = os.environ.get("LOCALAPPDATA")
-    if local:
-        hits = sorted(Path(local).glob(
-            f"Microsoft/WinGet/Packages/Gyan.FFmpeg*/**/bin/{name}.exe"))
-        if hits:
-            return str(hits[-1])
-    return None
 
 
 def fetch(url, dest):
@@ -160,7 +147,7 @@ def _config_path():
     does not, so tokens end up in cloud storage. Falls back to the repo copy so
     existing setups keep working.
     """
-    base = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_CONFIG_HOME")
+    base = config_base_dir()
     if base:
         p = Path(base) / "tapedeck" / "config.json"
         if p.exists():
@@ -507,7 +494,8 @@ def main():
 
     ffmpeg, ffprobe = find_exe("ffmpeg"), find_exe("ffprobe")
     if not ffmpeg or not ffprobe:
-        sys.exit("ffmpeg/ffprobe not found.\n  winget install Gyan.FFmpeg")
+        sys.exit(install_hint("ffmpeg/ffprobe", winget="Gyan.FFmpeg", brew="ffmpeg",
+                               apt="ffmpeg"))
 
     folder = Path(args.dir).expanduser().resolve()
     if not folder.is_dir():
