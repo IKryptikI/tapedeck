@@ -230,6 +230,28 @@ systemctl --user enable --now tapedeck-tunnel.service
 Logs land in `~/.local/state/tapedeck/`. `loginctl enable-linger $USER` keeps
 the units running after you log out (e.g. on a headless box).
 
+### Getting downloads into Spotify or Apple Music on Linux
+
+**Spotify: yes, via Local Files.** Point Spotify's desktop app at Tapedeck's
+output folder (Settings → Local Files → add a source) and your downloads play
+alongside the regular catalog. This is a client-side folder scan, not
+something the Web API exposes — no API can add a local file to a Spotify
+library, for anyone, on any platform. Tapedeck's tags/artwork are exactly what
+that feature wants, so no extra integration work is needed here.
+
+**Apple Music: not yet, and not through Sidra.** There is no official Apple
+Music client for Linux, and [Sidra](https://github.com/wimpysworld/sidra) —
+the Apple Music wrapper most people run instead — has no local-file support at
+all; it only streams the catalog. [Cider](https://cidercollective.io) dropped
+local-file support in its 2.x rewrite for the same reason. Nor is there an
+API path: Apple's MusicKit can add *catalog* songs to a library, but has no
+endpoint to upload arbitrary audio. Until Apple ships an official Linux
+client (or a wrapper adds real local-library support), there is no
+destination on this platform to send a download to — so for now, **Tapedeck's
+Linux library integration is Spotify-only.** Downloads still work fine either
+way; on the Apple Music side they just stay files in a folder rather than
+landing inside any app.
+
 ## config.local.json
 
 Both scripts read `config.local.json` from the repo folder, so tokens stay off
