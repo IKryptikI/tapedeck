@@ -237,7 +237,33 @@ output folder (Settings → Local Files → add a source) and your downloads pla
 alongside the regular catalog. This is a client-side folder scan, not
 something the Web API exposes — no API can add a local file to a Spotify
 library, for anyone, on any platform. Tapedeck's tags/artwork are exactly what
-that feature wants, so no extra integration work is needed here.
+that feature wants, so no extra integration work is needed here. Confirmed
+working end-to-end; setup:
+
+1. **Point Tapedeck's output at somewhere Spotify can actually see.** If you
+   installed Spotify as a Flatpak (`flatpak install flathub com.spotify.Client`
+   — the common case on most distros), it's sandboxed and can only read
+   `~/Music` and `~/Pictures`, nothing else on disk, regardless of what you add
+   as a source in its own settings. Check what a Flatpak app can reach with:
+   ```bash
+   flatpak info --show-permissions com.spotify.Client
+   ```
+   Look at the `filesystems=` line. If your output folder isn't under one of
+   those paths, Spotify's folder picker won't be able to browse to it at all.
+   Set `root` in `config.local.json` to somewhere under `~/Music`, e.g.:
+   ```json
+   { "root": "/home/YOU/Music/Tapedeck" }
+   ```
+2. **Download something.** In the web UI, the "Destination Folder" field
+   under the box needs an actual subfolder name typed in (e.g. `Oasis - Live
+   1995`) — the greyed-out path shown below it is just your configured root
+   for reference, not a value that's already filled in. Leaving it blank
+   throws "Give the destination folder a name."
+3. **In Spotify:** Settings → Local Files → toggle it on → Add a source →
+   browse to your Tapedeck root (or the specific subfolder).
+4. **If a fresh download doesn't show up:** Spotify scans a source when you
+   add it, but doesn't necessarily watch it live afterward. Toggle Local Files
+   off/on, or just quit and reopen Spotify, to force a rescan.
 
 **Apple Music: not yet, and not through Sidra.** There is no official Apple
 Music client for Linux, and [Sidra](https://github.com/wimpysworld/sidra) —
